@@ -136,7 +136,7 @@ export async function getPosts(
     const allDocsSnapshot = await getDocs(collection(db, "posts"));
     const totalDocs = allDocsSnapshot.size;
     const statuses = allDocsSnapshot.docs.map(d => d.data().status);
-    const uniqueStatuses = [...new Set(statuses)];
+    const uniqueStatuses = Array.from(new Set(statuses));
 
     console.log(`DEBUG: Total docs in posts collection: ${totalDocs}, statuses: ${uniqueStatuses.join(", ")}`);
 
