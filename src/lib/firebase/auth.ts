@@ -34,6 +34,13 @@ export async function signInWithEmail(
   password: string
 ): Promise<FirebaseUser> {
   const { user } = await signInWithEmailAndPassword(auth, email, password);
+
+  // Ensure user document exists (in case it wasn't created during signup)
+  const userDoc = await getDoc(doc(db, "users", user.uid));
+  if (!userDoc.exists()) {
+    await createUserDocument(user);
+  }
+
   return user;
 }
 

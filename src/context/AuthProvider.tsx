@@ -8,10 +8,27 @@ import {
   ReactNode,
 } from "react";
 import { onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
-import { auth } from "@/lib/firebase/config";
+import { auth, db } from "@/lib/firebase/config";
 import { getUserData } from "@/lib/firebase/auth";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { User } from "@/types";
 import { Spinner } from "@/components/ui/Spinner";
+
+// Create user document if it doesn't exist
+async function ensureUserDocument(fbUser: FirebaseUser): Promise<void> {
+  const userRef = doc(db, "users", fbUser.uid);
+  await setDoc(userRef, {
+    email: fbUser.email,
+    displayName: fbUser.displayName || fbUser.email?.split("@")[0] || "User",
+    photoURL: fbUser.photoURL || null,
+    role: null,
+    bio: "",
+    location: "",
+    createdAt: serverTimestamp(),
+    activePostCount: 0,
+    extraPostCredits: 0,
+  }, { merge: true }); // merge: true won't overwrite existing fields
+}
 
 interface AuthContextType {
   firebaseUser: FirebaseUser | null;
@@ -59,6 +76,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (fbUser) {
           try {
+            // Ensure user document exists
+            await ensureUserDocument(fbUser);
             const userData = await getUserData(fbUser.uid);
             setUser(userData);
           } catch (error) {
