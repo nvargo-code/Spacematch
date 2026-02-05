@@ -73,6 +73,12 @@ export default function HomePage() {
         </div>
       </div>
 
+      {/* Debug info - remove after fixing */}
+      <div className="mb-6 p-4 bg-card border border-border rounded-lg text-xs text-muted">
+        <p>Debug: Loading={String(loading)}, Posts={posts.length}, Error={error || "none"}</p>
+        <p>Firebase Project: {process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "NOT SET"}</p>
+      </div>
+
       {/* Error display */}
       {error && (
         <div className="mb-6 p-4 bg-error/10 border border-error rounded-lg text-error text-sm">
