@@ -2,10 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { getMatch } from "@/lib/firebase/matching";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+// Lazy initialization to avoid build-time errors
+function getStripe() {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) {
+    throw new Error("STRIPE_SECRET_KEY is not configured");
+  }
+  return new Stripe(key);
+}
 
 export async function POST(request: NextRequest) {
   try {
+    const stripe = getStripe();
     const { matchId, userId } = await request.json();
 
     if (!matchId || !userId) {
