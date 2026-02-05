@@ -9,6 +9,7 @@ export function usePosts(filters?: PostFilter) {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const lastDocRef = useRef<DocumentSnapshot | null>(null);
   const filtersRef = useRef(filters);
 
@@ -19,6 +20,7 @@ export function usePosts(filters?: PostFilter) {
 
   const loadPosts = useCallback(async (reset = false) => {
     setLoading(true);
+    setError(null);
     try {
       const result = await getPosts(
         filtersRef.current,
@@ -33,8 +35,10 @@ export function usePosts(filters?: PostFilter) {
 
       lastDocRef.current = result.lastDoc;
       setHasMore(result.posts.length === 12);
-    } catch (error) {
-      console.error("Error loading posts:", error);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      console.error("Error loading posts:", err);
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -59,7 +63,7 @@ export function usePosts(filters?: PostFilter) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(filters)]);
 
-  return { posts, loading, hasMore, loadMore, refresh };
+  return { posts, loading, hasMore, loadMore, refresh, error };
 }
 
 export function useSearchPosts(keyword: string, type?: "need" | "space") {

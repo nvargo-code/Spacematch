@@ -13,7 +13,7 @@ import { Plus, Search } from "lucide-react";
 export default function HomePage() {
   const { firebaseUser, user } = useAuth();
   const [filters, setFilters] = useState<PostFilter>({});
-  const { posts, loading, hasMore, loadMore } = usePosts(filters);
+  const { posts, loading, hasMore, loadMore, error } = usePosts(filters);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
@@ -72,6 +72,13 @@ export default function HomePage() {
           )}
         </div>
       </div>
+
+      {/* Error display */}
+      {error && (
+        <div className="mb-6 p-4 bg-error/10 border border-error rounded-lg text-error text-sm">
+          <strong>Error loading posts:</strong> {error}
+        </div>
+      )}
 
       {/* Post grid */}
       <PostGrid
