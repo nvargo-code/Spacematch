@@ -88,7 +88,7 @@ export function PostForm() {
       const postId = await createPost(
         firebaseUser.uid,
         user.displayName || firebaseUser.displayName || firebaseUser.email?.split("@")[0] || "Anonymous",
-        user.photoURL || firebaseUser.photoURL,
+        user.photoURL || firebaseUser.photoURL || undefined,
         data
       );
       success("Post created successfully!");
