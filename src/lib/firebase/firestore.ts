@@ -133,63 +133,74 @@ export async function getPosts(
   pageSize: number = POSTS_PER_PAGE
 ): Promise<{ posts: Post[]; lastDoc: DocumentSnapshot | null }> {
   try {
-    const constraints: QueryConstraint[] = [
-      where("status", "==", "active"),
-      orderBy("createdAt", "desc"),
-    ];
+    // Simple query that doesn't require composite indexes
+    let q;
 
     if (filters?.type) {
-      constraints.unshift(where("type", "==", filters.type));
+      // Filter by type only - no composite index needed
+      q = query(
+        collection(db, "posts"),
+        where("type", "==", filters.type),
+        where("status", "==", "active"),
+        limit(pageSize * 2) // Fetch more to allow for client-side sorting
+      );
+    } else {
+      // Just filter by status - no composite index needed
+      q = query(
+        collection(db, "posts"),
+        where("status", "==", "active"),
+        limit(pageSize * 2)
+      );
     }
 
-    if (lastDoc) {
-      constraints.push(startAfter(lastDoc));
-    }
-
-    constraints.push(limit(pageSize));
-
-    const q = query(collection(db, "posts"), ...constraints);
     const snapshot = await getDocs(q);
 
-    const posts = snapshot.docs.map(docToPost);
-    const newLastDoc = snapshot.docs[snapshot.docs.length - 1] || null;
+    // Sort client-side by createdAt descending
+    let posts = snapshot.docs.map(docToPost);
+    posts.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+    // Apply pagination client-side
+    if (lastDoc) {
+      const lastIndex = posts.findIndex(p => p.id === lastDoc.id);
+      if (lastIndex >= 0) {
+        posts = posts.slice(lastIndex + 1);
+      }
+    }
+
+    posts = posts.slice(0, pageSize);
+    const newLastDoc = snapshot.docs.find(d => d.id === posts[posts.length - 1]?.id) || null;
 
     return { posts, lastDoc: newLastDoc };
   } catch (error) {
     console.error("getPosts error:", error);
-    // Fallback: try without orderBy (no index required)
-    const q = query(
-      collection(db, "posts"),
-      where("status", "==", "active"),
-      limit(pageSize)
-    );
-    const snapshot = await getDocs(q);
-    const posts = snapshot.docs.map(docToPost);
-    return { posts, lastDoc: null };
+    // Ultimate fallback: get all posts
+    try {
+      const snapshot = await getDocs(collection(db, "posts"));
+      let posts = snapshot.docs.map(docToPost).filter(p => p.status === "active");
+      posts.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      return { posts: posts.slice(0, pageSize), lastDoc: null };
+    } catch (fallbackError) {
+      console.error("getPosts fallback error:", fallbackError);
+      return { posts: [], lastDoc: null };
+    }
   }
 }
 
 export async function getUserPosts(userId: string): Promise<Post[]> {
   try {
+    // Simple query - just filter by authorId, sort client-side
     const q = query(
       collection(db, "posts"),
-      where("authorId", "==", userId),
-      where("status", "==", "active"),
-      orderBy("createdAt", "desc")
+      where("authorId", "==", userId)
     );
 
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(docToPost);
+    let posts = snapshot.docs.map(docToPost).filter(p => p.status === "active");
+    posts.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    return posts;
   } catch (error) {
     console.error("getUserPosts error:", error);
-    // Fallback: try without orderBy (no index required)
-    const q = query(
-      collection(db, "posts"),
-      where("authorId", "==", userId),
-      where("status", "==", "active")
-    );
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(docToPost);
+    return [];
   }
 }
 
