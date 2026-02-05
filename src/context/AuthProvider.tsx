@@ -42,25 +42,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!mounted) return;
 
-    const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
-      setFirebaseUser(fbUser);
+    // Set a timeout to prevent infinite loading if Firebase fails to initialize
+    const timeout = setTimeout(() => {
+      if (loading) {
+        console.error("Firebase auth initialization timeout");
+        setLoading(false);
+      }
+    }, 10000);
 
-      if (fbUser) {
-        try {
-          const userData = await getUserData(fbUser.uid);
-          setUser(userData);
-        } catch (error) {
-          console.error("Error fetching user data:", error);
+    let unsubscribe: () => void;
+
+    try {
+      unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
+        clearTimeout(timeout);
+        setFirebaseUser(fbUser);
+
+        if (fbUser) {
+          try {
+            const userData = await getUserData(fbUser.uid);
+            setUser(userData);
+          } catch (error) {
+            console.error("Error fetching user data:", error);
+            setUser(null);
+          }
+        } else {
           setUser(null);
         }
-      } else {
-        setUser(null);
-      }
 
+        setLoading(false);
+      }, (error) => {
+        console.error("Auth state change error:", error);
+        clearTimeout(timeout);
+        setLoading(false);
+      });
+    } catch (error) {
+      console.error("Firebase auth initialization error:", error);
+      clearTimeout(timeout);
       setLoading(false);
-    });
+      return;
+    }
 
-    return () => unsubscribe();
+    return () => {
+      clearTimeout(timeout);
+      if (unsubscribe) unsubscribe();
+    };
   }, [mounted]);
 
   // Show loading spinner only after mounting on client
