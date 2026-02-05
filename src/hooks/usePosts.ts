@@ -1,17 +1,15 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { DocumentSnapshot } from "firebase/firestore";
-import { getPosts, searchPosts, getUserPosts } from "@/lib/firebase/firestore";
+import { searchPosts, getUserPosts } from "@/lib/firebase/firestore";
 import { Post, PostFilter } from "@/types";
 
 export function usePosts(filters?: PostFilter) {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
-  const [hasMore, setHasMore] = useState(true);
+  const [hasMore, setHasMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [debug, setDebug] = useState<string | null>(null);
-  const lastDocRef = useRef<DocumentSnapshot | null>(null);
   const filtersRef = useRef(filters);
 
   // Update filters ref when filters change
@@ -19,26 +17,41 @@ export function usePosts(filters?: PostFilter) {
     filtersRef.current = filters;
   }, [filters]);
 
-  const loadPosts = useCallback(async (reset = false) => {
+  const loadPosts = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const result = await getPosts(
-        filtersRef.current,
-        reset ? undefined : lastDocRef.current || undefined
-      );
+      // Use API endpoint instead of direct Firestore SDK
+      const params = new URLSearchParams();
+      if (filtersRef.current?.type) {
+        params.set("type", filtersRef.current.type);
+      }
 
-      if (reset) {
-        setPosts(result.posts);
+      const response = await fetch(`/api/posts?${params.toString()}`);
+      const data = await response.json();
+
+      if (data.error) {
+        setError(data.error);
+        setPosts([]);
       } else {
-        setPosts((prev) => [...prev, ...result.posts]);
+        // Transform and filter posts
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let filteredPosts = (data.posts || []).map((p: any) => ({
+          ...p,
+          createdAt: new Date(p.createdAt),
+          updatedAt: new Date(p.updatedAt),
+          attributes: p.attributes || {},
+          searchKeywords: p.searchKeywords || [],
+        }));
+        if (filtersRef.current?.type) {
+          filteredPosts = filteredPosts.filter(
+            (p: Post) => p.type === filtersRef.current?.type
+          );
+        }
+        setPosts(filteredPosts);
+        setDebug(`${data.debug?.fetchTime || "?"} | ${filteredPosts.length} posts`);
       }
-
-      lastDocRef.current = result.lastDoc;
-      setHasMore(result.posts.length === 12);
-      if (result.debug) {
-        setDebug(result.debug);
-      }
+      setHasMore(false); // REST API returns all posts at once for now
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown error";
       console.error("Error loading posts:", err);
@@ -49,21 +62,17 @@ export function usePosts(filters?: PostFilter) {
   }, []);
 
   const loadMore = useCallback(() => {
-    if (!loading && hasMore) {
-      loadPosts(false);
-    }
-  }, [loading, hasMore, loadPosts]);
+    // No pagination with REST API for now
+  }, []);
 
   const refresh = useCallback(() => {
-    lastDocRef.current = null;
-    loadPosts(true);
+    loadPosts();
   }, [loadPosts]);
 
   // Load posts when filters change
   useEffect(() => {
-    lastDocRef.current = null;
     setPosts([]);
-    loadPosts(true);
+    loadPosts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(filters)]);
 

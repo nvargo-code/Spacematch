@@ -132,15 +132,14 @@ export async function getPosts(
   pageSize: number = POSTS_PER_PAGE
 ): Promise<{ posts: Post[]; lastDoc: DocumentSnapshot | null; debug?: string }> {
   try {
-    // First, try to get ALL posts without any filter to debug
-    const allDocsSnapshot = await getDocs(collection(db, "posts"));
-    const totalDocs = allDocsSnapshot.size;
-    const statuses = allDocsSnapshot.docs.map(d => d.data().status);
-    const uniqueStatuses = Array.from(new Set(statuses));
+    // Debug: Check if db is initialized
+    if (!db) {
+      return { posts: [], lastDoc: null, debug: "ERROR: db is undefined" };
+    }
 
-    console.log(`DEBUG: Total docs in posts collection: ${totalDocs}, statuses: ${uniqueStatuses.join(", ")}`);
+    const startTime = Date.now();
 
-    // Now do the actual query
+    // Query for active posts
     let q;
     if (filters?.type) {
       q = query(
@@ -158,7 +157,6 @@ export async function getPosts(
     }
 
     const snapshot = await getDocs(q);
-    console.log(`DEBUG: Filtered query returned ${snapshot.size} docs`);
 
     // Sort client-side by createdAt descending
     let posts = snapshot.docs.map(docToPost);
@@ -175,10 +173,11 @@ export async function getPosts(
     posts = posts.slice(0, pageSize);
     const newLastDoc = snapshot.docs.find(d => d.id === posts[posts.length - 1]?.id) || null;
 
+    const elapsed = Date.now() - startTime;
     return {
       posts,
       lastDoc: newLastDoc,
-      debug: `Total: ${totalDocs}, Statuses: [${uniqueStatuses.join(", ")}], Filtered: ${snapshot.size}`
+      debug: `${elapsed}ms | Total: ${snapshot.size}, Returned: ${posts.length}`
     };
   } catch (error) {
     console.error("getPosts error:", error);

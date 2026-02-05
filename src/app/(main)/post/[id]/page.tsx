@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { getPost } from "@/lib/firebase/firestore";
 import { Post } from "@/types";
 import { PostDetail } from "@/components/posts/PostDetail";
 import { Spinner } from "@/components/ui/Spinner";
@@ -18,9 +17,19 @@ export default function PostPage() {
   useEffect(() => {
     const loadPost = async () => {
       try {
-        const postData = await getPost(postId);
-        if (postData) {
-          setPost(postData);
+        // Use API endpoint instead of direct Firebase SDK
+        const response = await fetch(`/api/posts/${postId}`);
+        const data = await response.json();
+
+        if (data.error) {
+          setError(data.error);
+        } else if (data.post) {
+          // Convert date strings to Date objects
+          setPost({
+            ...data.post,
+            createdAt: new Date(data.post.createdAt),
+            updatedAt: new Date(data.post.updatedAt),
+          });
         } else {
           setError("Post not found");
         }
