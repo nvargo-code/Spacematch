@@ -130,21 +130,26 @@ export async function getPosts(
   filters?: PostFilter,
   lastDoc?: DocumentSnapshot,
   pageSize: number = POSTS_PER_PAGE
-): Promise<{ posts: Post[]; lastDoc: DocumentSnapshot | null }> {
+): Promise<{ posts: Post[]; lastDoc: DocumentSnapshot | null; debug?: string }> {
   try {
-    // Simple query that doesn't require composite indexes
-    let q;
+    // First, try to get ALL posts without any filter to debug
+    const allDocsSnapshot = await getDocs(collection(db, "posts"));
+    const totalDocs = allDocsSnapshot.size;
+    const statuses = allDocsSnapshot.docs.map(d => d.data().status);
+    const uniqueStatuses = [...new Set(statuses)];
 
+    console.log(`DEBUG: Total docs in posts collection: ${totalDocs}, statuses: ${uniqueStatuses.join(", ")}`);
+
+    // Now do the actual query
+    let q;
     if (filters?.type) {
-      // Filter by type only - no composite index needed
       q = query(
         collection(db, "posts"),
         where("type", "==", filters.type),
         where("status", "==", "active"),
-        limit(pageSize * 2) // Fetch more to allow for client-side sorting
+        limit(pageSize * 2)
       );
     } else {
-      // Just filter by status - no composite index needed
       q = query(
         collection(db, "posts"),
         where("status", "==", "active"),
@@ -153,6 +158,7 @@ export async function getPosts(
     }
 
     const snapshot = await getDocs(q);
+    console.log(`DEBUG: Filtered query returned ${snapshot.size} docs`);
 
     // Sort client-side by createdAt descending
     let posts = snapshot.docs.map(docToPost);
@@ -169,19 +175,14 @@ export async function getPosts(
     posts = posts.slice(0, pageSize);
     const newLastDoc = snapshot.docs.find(d => d.id === posts[posts.length - 1]?.id) || null;
 
-    return { posts, lastDoc: newLastDoc };
+    return {
+      posts,
+      lastDoc: newLastDoc,
+      debug: `Total: ${totalDocs}, Statuses: [${uniqueStatuses.join(", ")}], Filtered: ${snapshot.size}`
+    };
   } catch (error) {
     console.error("getPosts error:", error);
-    // Ultimate fallback: get all posts
-    try {
-      const snapshot = await getDocs(collection(db, "posts"));
-      const posts = snapshot.docs.map(docToPost).filter(p => p.status === "active");
-      posts.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-      return { posts: posts.slice(0, pageSize), lastDoc: null };
-    } catch (fallbackError) {
-      console.error("getPosts fallback error:", fallbackError);
-      return { posts: [], lastDoc: null };
-    }
+    return { posts: [], lastDoc: null, debug: `Error: ${error}` };
   }
 }
 

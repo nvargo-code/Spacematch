@@ -13,7 +13,7 @@ import { Plus, Search } from "lucide-react";
 export default function HomePage() {
   const { firebaseUser, user } = useAuth();
   const [filters, setFilters] = useState<PostFilter>({});
-  const { posts, loading, hasMore, loadMore, error } = usePosts(filters);
+  const { posts, loading, hasMore, loadMore, error, debug } = usePosts(filters);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
@@ -74,9 +74,10 @@ export default function HomePage() {
       </div>
 
       {/* Debug info - remove after fixing */}
-      <div className="mb-6 p-4 bg-card border border-border rounded-lg text-xs text-muted">
-        <p>Debug: Loading={String(loading)}, Posts={posts.length}, Error={error || "none"}</p>
-        <p>Firebase Project: {process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "NOT SET"}</p>
+      <div className="mb-6 p-4 bg-card border border-border rounded-lg text-xs text-muted space-y-1">
+        <p>Loading={String(loading)}, Posts={posts.length}, Error={error || "none"}</p>
+        <p>Firebase: {process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "NOT SET"}</p>
+        <p>Query: {debug || "no debug info"}</p>
       </div>
 
       {/* Error display */}
