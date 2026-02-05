@@ -9,7 +9,6 @@ import {
   where,
   orderBy,
   limit,
-  startAfter,
   serverTimestamp,
   increment,
   DocumentSnapshot,
@@ -176,7 +175,7 @@ export async function getPosts(
     // Ultimate fallback: get all posts
     try {
       const snapshot = await getDocs(collection(db, "posts"));
-      let posts = snapshot.docs.map(docToPost).filter(p => p.status === "active");
+      const posts = snapshot.docs.map(docToPost).filter(p => p.status === "active");
       posts.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
       return { posts: posts.slice(0, pageSize), lastDoc: null };
     } catch (fallbackError) {
@@ -195,7 +194,7 @@ export async function getUserPosts(userId: string): Promise<Post[]> {
     );
 
     const snapshot = await getDocs(q);
-    let posts = snapshot.docs.map(docToPost).filter(p => p.status === "active");
+    const posts = snapshot.docs.map(docToPost).filter(p => p.status === "active");
     posts.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
     return posts;
   } catch (error) {
