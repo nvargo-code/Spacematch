@@ -63,6 +63,11 @@ export const postSchema = z.object({
   }),
 });
 
+export const forgotPasswordSchema = z.object({
+  email: emailSchema,
+});
+
 export type SignUpFormData = z.infer<typeof signUpSchema>;
 export type LoginFormData = z.infer<typeof loginSchema>;
+export type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
 export type PostFormData = z.infer<typeof postSchema>;

@@ -5,6 +5,7 @@ import {
   GoogleAuthProvider,
   signOut as firebaseSignOut,
   sendEmailVerification,
+  sendPasswordResetEmail,
   updateProfile,
   User as FirebaseUser,
 } from "firebase/auth";
@@ -53,6 +54,10 @@ export async function signInWithGoogle(): Promise<FirebaseUser> {
   }
 
   return user;
+}
+
+export async function resetPassword(email: string): Promise<void> {
+  await sendPasswordResetEmail(auth, email);
 }
 
 export async function signOut(): Promise<void> {
