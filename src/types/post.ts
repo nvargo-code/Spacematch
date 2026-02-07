@@ -1,6 +1,7 @@
 import { PostAttributes } from "./attributes";
+import { ForumCategory } from "./forum";
 
-export type PostType = "need" | "space";
+export type PostType = "need" | "space" | "community";
 export type PostStatus = "active" | "closed" | "deleted";
 
 export interface Post {
@@ -17,6 +18,13 @@ export interface Post {
   status: PostStatus;
   createdAt: Date;
   updatedAt: Date;
+  // Community forum fields
+  category?: ForumCategory;
+  replyCount?: number;
+  // Availability calendar fields
+  hasAvailability?: boolean;
+  availabilityStart?: Date;
+  availabilityEnd?: Date;
 }
 
 export interface CreatePostData {
@@ -25,6 +33,7 @@ export interface CreatePostData {
   description: string;
   images: string[];
   attributes: PostAttributes;
+  category?: ForumCategory;
 }
 
 export interface PostFilter {

@@ -54,6 +54,9 @@ export async function GET() {
           status: fields.status?.stringValue,
           createdAt: fields.createdAt?.timestampValue || new Date().toISOString(),
           updatedAt: fields.updatedAt?.timestampValue || new Date().toISOString(),
+          category: fields.category?.stringValue || null,
+          replyCount: fields.replyCount?.integerValue ? parseInt(fields.replyCount.integerValue, 10) : 0,
+          hasAvailability: fields.hasAvailability?.booleanValue || false,
         };
       })
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

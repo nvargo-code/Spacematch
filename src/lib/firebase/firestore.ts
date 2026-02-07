@@ -33,6 +33,16 @@ function removeUndefined<T extends Record<string, unknown>>(obj: T): T {
   return result as T;
 }
 
+function generateCommunitySearchKeywords(post: CreatePostData): string[] {
+  const keywords: string[] = [];
+  const titleWords = post.title.toLowerCase().split(/\s+/);
+  keywords.push(...titleWords);
+  const descWords = post.description.toLowerCase().split(/\s+/).slice(0, 100);
+  keywords.push(...descWords);
+  keywords.push("community");
+  return Array.from(new Set(keywords)).filter(k => k.length > 2);
+}
+
 function generateSearchKeywords(post: CreatePostData): string[] {
   const keywords: string[] = [];
 
@@ -90,12 +100,15 @@ export async function createPost(
   authorPhotoURL: string | undefined,
   data: CreatePostData
 ): Promise<string> {
-  const searchKeywords = generateSearchKeywords(data);
+  // Community posts get simpler keyword generation
+  const searchKeywords = data.type === "community"
+    ? generateCommunitySearchKeywords(data)
+    : generateSearchKeywords(data);
 
   // Clean data to remove undefined values (Firestore doesn't accept them)
   const cleanedData = removeUndefined(data as unknown as Record<string, unknown>);
 
-  const postRef = await addDoc(collection(db, "posts"), {
+  const postDoc: Record<string, unknown> = {
     ...cleanedData,
     authorId,
     authorName,
@@ -104,7 +117,14 @@ export async function createPost(
     status: "active",
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
-  });
+  };
+
+  // Community posts start with 0 replies
+  if (data.type === "community") {
+    postDoc.replyCount = 0;
+  }
+
+  const postRef = await addDoc(collection(db, "posts"), postDoc);
 
   // Increment user's active post count
   const userRef = doc(db, "users", authorId);
@@ -205,7 +225,7 @@ export async function getUserPosts(userId: string): Promise<Post[]> {
 
 export async function searchPosts(
   keyword: string,
-  type?: "need" | "space"
+  type?: Post["type"]
 ): Promise<Post[]> {
   const searchTerm = keyword.toLowerCase();
 
@@ -266,5 +286,12 @@ function docToPost(doc: DocumentSnapshot): Post {
     status: data.status,
     createdAt: data.createdAt?.toDate() || new Date(),
     updatedAt: data.updatedAt?.toDate() || new Date(),
+    // Community fields
+    category: data.category || undefined,
+    replyCount: data.replyCount || 0,
+    // Availability fields
+    hasAvailability: data.hasAvailability || false,
+    availabilityStart: data.availabilityStart?.toDate() || undefined,
+    availabilityEnd: data.availabilityEnd?.toDate() || undefined,
   };
 }

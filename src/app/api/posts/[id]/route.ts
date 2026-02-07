@@ -60,6 +60,13 @@ export async function GET(
       status: fields.status?.stringValue,
       createdAt: fields.createdAt?.timestampValue || new Date().toISOString(),
       updatedAt: fields.updatedAt?.timestampValue || new Date().toISOString(),
+      // Community fields
+      category: fields.category?.stringValue || null,
+      replyCount: fields.replyCount?.integerValue ? parseInt(fields.replyCount.integerValue, 10) : 0,
+      // Availability fields
+      hasAvailability: fields.hasAvailability?.booleanValue || false,
+      availabilityStart: fields.availabilityStart?.timestampValue || null,
+      availabilityEnd: fields.availabilityEnd?.timestampValue || null,
     };
 
     return NextResponse.json({

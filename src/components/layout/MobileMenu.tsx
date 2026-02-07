@@ -6,7 +6,7 @@ import { useAuth } from "@/context/AuthProvider";
 import { signOut } from "@/lib/firebase/auth";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
-import { X, Home, Search, Plus, MessageSquare, User, LogOut } from "lucide-react";
+import { X, Home, Search, Plus, MessageSquare, User, LogOut, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface MobileMenuProps {
@@ -36,9 +36,11 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
   const menuItems = [
     { href: "/", icon: Home, label: "Home" },
     { href: "/search", icon: Search, label: "Search" },
+    { href: "/feed?type=community", icon: Users, label: "Community" },
     ...(firebaseUser
       ? [
           { href: "/post/new", icon: Plus, label: "Create Post" },
+          { href: "/community/new", icon: Users, label: "Community Post" },
           { href: "/messages", icon: MessageSquare, label: "Messages" },
           { href: "/profile", icon: User, label: "Profile" },
         ]

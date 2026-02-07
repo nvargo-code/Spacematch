@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { Post } from "@/types";
 import { PostDetail } from "@/components/posts/PostDetail";
+import { CommunityPostDetail } from "@/components/forum/CommunityPostDetail";
 import { Spinner } from "@/components/ui/Spinner";
 import { Card } from "@/components/ui/Card";
 
@@ -69,7 +70,11 @@ export default function PostPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-      <PostDetail post={post} />
+      {post.type === "community" ? (
+        <CommunityPostDetail post={post} />
+      ) : (
+        <PostDetail post={post} />
+      )}
     </div>
   );
 }

@@ -169,3 +169,58 @@ body.modal-open {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* FullCalendar dark theme overrides */
+.fc {
+  --fc-border-color: #374151;
+  --fc-button-bg-color: #1E293B;
+  --fc-button-border-color: #374151;
+  --fc-button-hover-bg-color: #374151;
+  --fc-button-hover-border-color: #4B5563;
+  --fc-button-active-bg-color: #A8DADC;
+  --fc-button-active-border-color: #A8DADC;
+  --fc-button-text-color: #EDEDED;
+  --fc-event-bg-color: #22c55e;
+  --fc-event-border-color: #16a34a;
+  --fc-event-text-color: #fff;
+  --fc-today-bg-color: rgba(168, 218, 220, 0.1);
+  --fc-page-bg-color: transparent;
+  --fc-neutral-bg-color: #1E293B;
+  --fc-list-event-hover-bg-color: #374151;
+}
+
+.fc .fc-col-header-cell {
+  background: #1E293B;
+  color: #EDEDED;
+}
+
+.fc .fc-daygrid-day-number {
+  color: #EDEDED;
+}
+
+.fc .fc-day-other .fc-daygrid-day-number {
+  color: #6B7280;
+}
+
+.fc .fc-toolbar-title {
+  color: #EDEDED;
+}
+
+.fc .fc-button {
+  font-size: 0.875rem;
+  border-radius: 0.5rem;
+}
+
+.fc .fc-button-active {
+  color: #121212 !important;
+}
+
+.fc .fc-daygrid-event {
+  border-radius: 4px;
+  padding: 1px 4px;
+  font-size: 0.75rem;
+}
+
+.fc .fc-highlight {
+  background: rgba(168, 218, 220, 0.15);
+}

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useAuth } from "@/context/AuthProvider";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
-import { Search, Plus, MessageSquare, Menu } from "lucide-react";
+import { Search, Plus, MessageSquare, Menu, Users } from "lucide-react";
 import { useState } from "react";
 import { MobileMenu } from "./MobileMenu";
 
@@ -34,6 +34,13 @@ export function Header() {
             >
               <Search size={18} />
               Search
+            </Link>
+            <Link
+              href="/feed?type=community"
+              className="text-muted hover:text-foreground transition-colors flex items-center gap-2"
+            >
+              <Users size={18} />
+              Community
             </Link>
             {firebaseUser && (
               <>

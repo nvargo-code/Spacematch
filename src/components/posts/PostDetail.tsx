@@ -15,6 +15,7 @@ import { Tag } from "@/components/ui/Tag";
 import { Modal, ModalBody, ModalFooter } from "@/components/ui/Modal";
 import { formatDate, formatBudgetRange } from "@/lib/utils/formatters";
 import { cn } from "@/lib/utils";
+import { AvailabilityCalendar } from "@/components/calendar/AvailabilityCalendar";
 import {
   MapPin,
   Clock,
@@ -28,6 +29,7 @@ import {
   ParkingSquare,
   Droplets,
   Wifi,
+  Calendar,
   Wind,
   Flame,
   Accessibility,
@@ -329,6 +331,26 @@ export function PostDetail({ post }: PostDetailProps) {
                 </div>
               )}
             </Card>
+
+            {/* Availability section — only for space posts */}
+            {post.type === "space" && (
+              <Card padding="lg">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                    <Calendar size={20} />
+                    Availability
+                  </h2>
+                  {isOwner && (
+                    <Link href={`/post/${post.id}/availability`}>
+                      <Button variant="secondary" size="sm">
+                        Manage Availability
+                      </Button>
+                    </Link>
+                  )}
+                </div>
+                <AvailabilityCalendar postId={post.id} />
+              </Card>
+            )}
           </div>
 
           {/* Sidebar */}

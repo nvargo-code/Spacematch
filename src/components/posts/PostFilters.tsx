@@ -58,6 +58,7 @@ export function PostFilters({ filters, onChange, className }: PostFiltersProps) 
             { value: undefined, label: "All" },
             { value: "need" as PostType, label: "Seeking" },
             { value: "space" as PostType, label: "Available" },
+            { value: "community" as PostType, label: "Community" },
           ].map((option) => (
             <button
               key={option.label}

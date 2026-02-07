@@ -79,7 +79,7 @@ export function usePosts(filters?: PostFilter) {
   return { posts, loading, hasMore, loadMore, refresh, error, debug };
 }
 
-export function useSearchPosts(keyword: string, type?: "need" | "space") {
+export function useSearchPosts(keyword: string, type?: PostFilter["type"]) {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(false);
 

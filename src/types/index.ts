@@ -3,3 +3,5 @@ export * from "./post";
 export * from "./chat";
 export * from "./match";
 export * from "./attributes";
+export * from "./forum";
+export * from "./availability";

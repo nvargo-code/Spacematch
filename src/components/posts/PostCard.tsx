@@ -3,12 +3,13 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Post } from "@/types";
+import { FORUM_CATEGORIES } from "@/types/forum";
 import { Card } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
 import { Tag } from "@/components/ui/Tag";
 import { formatDate, truncateText } from "@/lib/utils/formatters";
 import { cn } from "@/lib/utils";
-import { MapPin, Clock, Search, Building2 } from "lucide-react";
+import { MapPin, Clock, Search, Building2, Users, MessageSquare, Calendar } from "lucide-react";
 
 interface PostCardProps {
   post: Post;
@@ -16,7 +17,31 @@ interface PostCardProps {
 }
 
 export function PostCard({ post, className }: PostCardProps) {
-  const TypeIcon = post.type === "need" ? Search : Building2;
+  const TypeIcon =
+    post.type === "community"
+      ? Users
+      : post.type === "need"
+        ? Search
+        : Building2;
+
+  const badgeLabel =
+    post.type === "community"
+      ? "Community"
+      : post.type === "need"
+        ? "Looking"
+        : "Available";
+
+  const badgeClass =
+    post.type === "community"
+      ? "bg-purple-500 text-white"
+      : post.type === "need"
+        ? "bg-accent text-background"
+        : "bg-success text-background";
+
+  const categoryLabel =
+    post.type === "community" && post.category
+      ? FORUM_CATEGORIES.find((c) => c.value === post.category)?.label
+      : null;
 
   return (
     <Link href={`/post/${post.id}`}>
@@ -35,18 +60,21 @@ export function PostCard({ post, className }: PostCardProps) {
               className="object-cover"
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             />
-            <div className="absolute top-2 left-2">
+            <div className="absolute top-2 left-2 flex items-center gap-1.5">
               <span
                 className={cn(
                   "inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium",
-                  post.type === "need"
-                    ? "bg-accent text-background"
-                    : "bg-success text-background"
+                  badgeClass
                 )}
               >
                 <TypeIcon size={12} />
-                {post.type === "need" ? "Looking" : "Available"}
+                {badgeLabel}
               </span>
+              {post.hasAvailability && post.type === "space" && (
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-blue-500 text-white">
+                  <Calendar size={12} />
+                </span>
+              )}
             </div>
           </div>
         ) : (
@@ -67,17 +95,35 @@ export function PostCard({ post, className }: PostCardProps) {
 
           {/* Tags */}
           <div className="flex flex-wrap gap-1.5 mb-3">
-            {post.attributes.sizeCategory && (
-              <Tag size="sm">{post.attributes.sizeCategory}</Tag>
+            {post.type === "community" ? (
+              <>
+                {categoryLabel && (
+                  <Tag size="sm" className="bg-purple-500/20 text-purple-300">
+                    {categoryLabel}
+                  </Tag>
+                )}
+                {(post.replyCount ?? 0) > 0 && (
+                  <Tag size="sm">
+                    <MessageSquare size={10} className="mr-0.5" />
+                    {post.replyCount} {post.replyCount === 1 ? "reply" : "replies"}
+                  </Tag>
+                )}
+              </>
+            ) : (
+              <>
+                {post.attributes.sizeCategory && (
+                  <Tag size="sm">{post.attributes.sizeCategory}</Tag>
+                )}
+                {post.attributes.environment && (
+                  <Tag size="sm">{post.attributes.environment}</Tag>
+                )}
+                {post.attributes.userTypes?.slice(0, 2).map((type) => (
+                  <Tag key={type} size="sm">
+                    {type}
+                  </Tag>
+                ))}
+              </>
             )}
-            {post.attributes.environment && (
-              <Tag size="sm">{post.attributes.environment}</Tag>
-            )}
-            {post.attributes.userTypes?.slice(0, 2).map((type) => (
-              <Tag key={type} size="sm">
-                {type}
-              </Tag>
-            ))}
           </div>
 
           {/* Footer */}
@@ -88,7 +134,7 @@ export function PostCard({ post, className }: PostCardProps) {
             </div>
 
             <div className="flex items-center gap-3 text-xs text-muted">
-              {post.attributes.location && (
+              {post.type !== "community" && post.attributes.location && (
                 <span className="flex items-center gap-1">
                   <MapPin size={12} />
                   {post.attributes.location.split(",")[0]}

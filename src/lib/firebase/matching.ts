@@ -157,6 +157,32 @@ function calculateMatchScore(
     }
   }
 
+  // Availability bonus — space post with availability set (+5 "Available Now")
+  const spacePost = post1.type === "space" ? post1 : post2;
+  if (spacePost.hasAvailability) {
+    const now = new Date();
+    // +5 if space is currently available (now falls within availability range)
+    if (
+      spacePost.availabilityStart &&
+      spacePost.availabilityEnd &&
+      now >= spacePost.availabilityStart &&
+      now <= spacePost.availabilityEnd
+    ) {
+      score += 5;
+      matchingAttributes.push("Available Now");
+    }
+    // +5 for long-term availability (availability span > 30 days)
+    if (
+      spacePost.availabilityStart &&
+      spacePost.availabilityEnd &&
+      spacePost.availabilityEnd.getTime() - spacePost.availabilityStart.getTime() >
+        30 * 24 * 60 * 60 * 1000
+    ) {
+      score += 5;
+      matchingAttributes.push("Long-term Availability");
+    }
+  }
+
   return { score, matchingAttributes };
 }
 
