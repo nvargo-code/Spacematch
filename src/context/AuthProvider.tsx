@@ -10,24 +10,28 @@ import {
 import { onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
 import { auth, db } from "@/lib/firebase/config";
 import { getUserData } from "@/lib/firebase/auth";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { User } from "@/types";
 import { Spinner } from "@/components/ui/Spinner";
 
-// Create user document if it doesn't exist
+// Create user document only if it doesn't already exist
 async function ensureUserDocument(fbUser: FirebaseUser): Promise<void> {
   const userRef = doc(db, "users", fbUser.uid);
-  await setDoc(userRef, {
-    email: fbUser.email,
-    displayName: fbUser.displayName || fbUser.email?.split("@")[0] || "User",
-    photoURL: fbUser.photoURL || null,
-    role: null,
-    bio: "",
-    location: "",
-    createdAt: serverTimestamp(),
-    activePostCount: 0,
-    extraPostCredits: 0,
-  }, { merge: true }); // merge: true won't overwrite existing fields
+  const userDoc = await getDoc(userRef);
+
+  if (!userDoc.exists()) {
+    await setDoc(userRef, {
+      email: fbUser.email,
+      displayName: fbUser.displayName || fbUser.email?.split("@")[0] || "User",
+      photoURL: fbUser.photoURL || null,
+      role: null,
+      bio: "",
+      location: "",
+      createdAt: serverTimestamp(),
+      activePostCount: 0,
+      extraPostCredits: 0,
+    });
+  }
 }
 
 interface AuthContextType {
