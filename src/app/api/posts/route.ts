@@ -60,6 +60,27 @@ function generateSearchKeywords(
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+function fromFirestoreValue(val: any): any {
+  if (val === null || val === undefined) return null;
+  if ("stringValue" in val) return val.stringValue;
+  if ("integerValue" in val) return parseInt(val.integerValue, 10);
+  if ("doubleValue" in val) return val.doubleValue;
+  if ("booleanValue" in val) return val.booleanValue;
+  if ("nullValue" in val) return null;
+  if ("timestampValue" in val) return val.timestampValue;
+  if ("arrayValue" in val) return (val.arrayValue?.values || []).map(fromFirestoreValue);
+  if ("mapValue" in val) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result: Record<string, any> = {};
+    for (const [k, v] of Object.entries(val.mapValue?.fields || {})) {
+      result[k] = fromFirestoreValue(v);
+    }
+    return result;
+  }
+  return null;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function parseFirestoreDoc(doc: any) {
   const fields = doc.fields || {};
   const id = doc.name?.split("/").pop();
@@ -73,6 +94,7 @@ function parseFirestoreDoc(doc: any) {
     title: fields.title?.stringValue,
     description: fields.description?.stringValue,
     images: (fields.images?.arrayValue?.values || []).map((v: { stringValue: string }) => v.stringValue),
+    attributes: fields.attributes ? fromFirestoreValue(fields.attributes) : {},
     status: fields.status?.stringValue,
     createdAt: fields.createdAt?.timestampValue || new Date().toISOString(),
     updatedAt: fields.updatedAt?.timestampValue || new Date().toISOString(),
