@@ -16,7 +16,7 @@ const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
 export const auth = getAuth(app);
 if (typeof window !== "undefined") {
-  setPersistence(auth, browserSessionPersistence);
+  setPersistence(auth, browserSessionPersistence).catch(console.error);
 }
 export const db = getFirestore(app);
 export const storage = getStorage(app);
