@@ -1,6 +1,63 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
+
+// Helper: convert a JS value to a Firestore REST API "Value" object
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function toFirestoreValue(val: any): any {
+  if (val === null || val === undefined) return { nullValue: null };
+  if (typeof val === "string") return { stringValue: val };
+  if (typeof val === "boolean") return { booleanValue: val };
+  if (typeof val === "number") {
+    if (Number.isInteger(val)) return { integerValue: String(val) };
+    return { doubleValue: val };
+  }
+  if (Array.isArray(val)) {
+    return { arrayValue: { values: val.map(toFirestoreValue) } };
+  }
+  if (typeof val === "object") {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const fields: Record<string, any> = {};
+    for (const [k, v] of Object.entries(val)) {
+      if (v !== undefined) fields[k] = toFirestoreValue(v);
+    }
+    return { mapValue: { fields } };
+  }
+  return { stringValue: String(val) };
+}
+
+function generateSearchKeywords(
+  type: string,
+  title: string,
+  description: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  attributes?: any,
+): string[] {
+  const keywords: string[] = [];
+  keywords.push(...title.toLowerCase().split(/\s+/));
+  keywords.push(...description.toLowerCase().split(/\s+/).slice(0, 100));
+
+  if (type === "community") {
+    keywords.push("community");
+  } else if (attributes) {
+    if (attributes.sizeCategory) keywords.push(attributes.sizeCategory);
+    if (attributes.environment) keywords.push(attributes.environment);
+    if (attributes.utilities) keywords.push(...attributes.utilities);
+    if (attributes.duration) keywords.push(attributes.duration);
+    if (attributes.privacyLevel) keywords.push(attributes.privacyLevel);
+    if (attributes.noiseLevel) keywords.push(attributes.noiseLevel);
+    if (attributes.userTypes) keywords.push(...attributes.userTypes);
+    if (attributes.customTags) keywords.push(...attributes.customTags.map((t: string) => t.toLowerCase()));
+    if (attributes.location) keywords.push(...attributes.location.toLowerCase().split(/\s+/));
+    if (attributes.hasParking) keywords.push("parking");
+    if (attributes.hasRestroom) keywords.push("restroom", "bathroom");
+    if (attributes.adaAccessible) keywords.push("ada", "accessible", "accessibility");
+    if (attributes.petsAllowed) keywords.push("pets", "pet-friendly");
+    if (attributes.climateControlled) keywords.push("climate", "ac", "heating");
+  }
+
+  return Array.from(new Set(keywords)).filter(k => k.length > 2);
+}
 
 // Use Firebase REST API directly instead of SDK
 export async function GET() {
@@ -81,6 +138,105 @@ export async function GET() {
     console.error("API posts error:", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Unknown error", posts: [] },
+      { status: 500 }
+    );
+  }
+}
+
+// POST /api/posts — create a new post via Firestore REST API
+export async function POST(request: NextRequest) {
+  const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+
+  if (!projectId) {
+    return NextResponse.json({ error: "Project ID not configured" }, { status: 500 });
+  }
+
+  try {
+    const body = await request.json();
+    const { authorId, authorName, authorPhotoURL, type, title, description, images, attributes, category } = body;
+
+    if (!authorId || !title || !type) {
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    const now = new Date().toISOString();
+    const searchKeywords = generateSearchKeywords(type, title, description || "", attributes);
+
+    // Build Firestore document fields
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const fields: Record<string, any> = {
+      type: toFirestoreValue(type),
+      authorId: toFirestoreValue(authorId),
+      authorName: toFirestoreValue(authorName || ""),
+      authorPhotoURL: toFirestoreValue(authorPhotoURL || null),
+      title: toFirestoreValue(title),
+      description: toFirestoreValue(description || ""),
+      images: toFirestoreValue(images || []),
+      attributes: toFirestoreValue(attributes || {}),
+      searchKeywords: toFirestoreValue(searchKeywords),
+      status: toFirestoreValue("active"),
+      createdAt: { timestampValue: now },
+      updatedAt: { timestampValue: now },
+      hasAvailability: toFirestoreValue(false),
+    };
+
+    if (category) {
+      fields.category = toFirestoreValue(category);
+    }
+
+    if (type === "community") {
+      fields.replyCount = toFirestoreValue(0);
+    }
+
+    // Create the post document (auto-generated ID)
+    const createUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/posts`;
+    const createRes = await fetch(createUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fields }),
+    });
+
+    if (!createRes.ok) {
+      const errText = await createRes.text();
+      console.error("Firestore create post error:", errText);
+      return NextResponse.json({ error: "Failed to create post", details: errText }, { status: 500 });
+    }
+
+    const createData = await createRes.json();
+    const newDocId = createData.name?.split("/").pop();
+
+    // Increment user's activePostCount using commit with field transform
+    const commitUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents:commit`;
+    const commitRes = await fetch(commitUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        writes: [
+          {
+            transform: {
+              document: `projects/${projectId}/databases/(default)/documents/users/${authorId}`,
+              fieldTransforms: [
+                {
+                  fieldPath: "activePostCount",
+                  increment: { integerValue: "1" },
+                },
+              ],
+            },
+          },
+        ],
+      }),
+    });
+
+    if (!commitRes.ok) {
+      console.error("Firestore increment activePostCount error:", await commitRes.text());
+      // Non-fatal: post was already created
+    }
+
+    return NextResponse.json({ id: newDocId });
+  } catch (error) {
+    console.error("API POST /posts error:", error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Unknown error" },
       { status: 500 }
     );
   }

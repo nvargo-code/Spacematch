@@ -1,7 +1,6 @@
 import {
   collection,
   doc,
-  addDoc,
   getDoc,
   getDocs,
   updateDoc,
@@ -19,120 +18,35 @@ import { Post, CreatePostData, PostFilter, PostStatus } from "@/types";
 
 const POSTS_PER_PAGE = 12;
 
-// Helper to remove undefined values from an object (Firestore doesn't accept undefined)
-function removeUndefined<T extends Record<string, unknown>>(obj: T): T {
-  const result: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(obj)) {
-    if (value === undefined) continue;
-    if (value !== null && typeof value === "object" && !Array.isArray(value) && !(value instanceof Date)) {
-      result[key] = removeUndefined(value as Record<string, unknown>);
-    } else {
-      result[key] = value;
-    }
-  }
-  return result as T;
-}
-
-function generateCommunitySearchKeywords(post: CreatePostData): string[] {
-  const keywords: string[] = [];
-  const titleWords = post.title.toLowerCase().split(/\s+/);
-  keywords.push(...titleWords);
-  const descWords = post.description.toLowerCase().split(/\s+/).slice(0, 100);
-  keywords.push(...descWords);
-  keywords.push("community");
-  return Array.from(new Set(keywords)).filter(k => k.length > 2);
-}
-
-function generateSearchKeywords(post: CreatePostData): string[] {
-  const keywords: string[] = [];
-
-  // Add title words
-  const titleWords = post.title.toLowerCase().split(/\s+/);
-  keywords.push(...titleWords);
-
-  // Add description words (first 100 words)
-  const descWords = post.description.toLowerCase().split(/\s+/).slice(0, 100);
-  keywords.push(...descWords);
-
-  // Add attribute-based keywords
-  if (post.attributes.sizeCategory) {
-    keywords.push(post.attributes.sizeCategory);
-  }
-  if (post.attributes.environment) {
-    keywords.push(post.attributes.environment);
-  }
-  if (post.attributes.utilities) {
-    keywords.push(...post.attributes.utilities);
-  }
-  if (post.attributes.duration) {
-    keywords.push(post.attributes.duration);
-  }
-  if (post.attributes.privacyLevel) {
-    keywords.push(post.attributes.privacyLevel);
-  }
-  if (post.attributes.noiseLevel) {
-    keywords.push(post.attributes.noiseLevel);
-  }
-  if (post.attributes.userTypes) {
-    keywords.push(...post.attributes.userTypes);
-  }
-  if (post.attributes.customTags) {
-    keywords.push(...post.attributes.customTags.map(t => t.toLowerCase()));
-  }
-  if (post.attributes.location) {
-    keywords.push(...post.attributes.location.toLowerCase().split(/\s+/));
-  }
-
-  // Add boolean attribute keywords
-  if (post.attributes.hasParking) keywords.push("parking");
-  if (post.attributes.hasRestroom) keywords.push("restroom", "bathroom");
-  if (post.attributes.adaAccessible) keywords.push("ada", "accessible", "accessibility");
-  if (post.attributes.petsAllowed) keywords.push("pets", "pet-friendly");
-  if (post.attributes.climateControlled) keywords.push("climate", "ac", "heating");
-
-  // Remove duplicates and filter short words
-  return Array.from(new Set(keywords)).filter(k => k.length > 2);
-}
-
 export async function createPost(
   authorId: string,
   authorName: string,
   authorPhotoURL: string | undefined,
   data: CreatePostData
 ): Promise<string> {
-  // Community posts get simpler keyword generation
-  const searchKeywords = data.type === "community"
-    ? generateCommunitySearchKeywords(data)
-    : generateSearchKeywords(data);
-
-  // Clean data to remove undefined values (Firestore doesn't accept them)
-  const cleanedData = removeUndefined(data as unknown as Record<string, unknown>);
-
-  const postDoc: Record<string, unknown> = {
-    ...cleanedData,
-    authorId,
-    authorName,
-    authorPhotoURL: authorPhotoURL || null,
-    searchKeywords,
-    status: "active",
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  };
-
-  // Community posts start with 0 replies
-  if (data.type === "community") {
-    postDoc.replyCount = 0;
-  }
-
-  const postRef = await addDoc(collection(db, "posts"), postDoc);
-
-  // Increment user's active post count
-  const userRef = doc(db, "users", authorId);
-  await updateDoc(userRef, {
-    activePostCount: increment(1),
+  const response = await fetch("/api/posts", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      authorId,
+      authorName,
+      authorPhotoURL: authorPhotoURL || null,
+      type: data.type,
+      title: data.title,
+      description: data.description,
+      images: data.images,
+      attributes: data.attributes,
+      category: data.category,
+    }),
   });
 
-  return postRef.id;
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: "Unknown error" }));
+    throw new Error(err.error || "Failed to create post");
+  }
+
+  const result = await response.json();
+  return result.id;
 }
 
 export async function getPost(postId: string): Promise<Post | null> {

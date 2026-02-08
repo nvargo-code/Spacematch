@@ -72,8 +72,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (fbUser) {
           try {
-            // Ensure user document exists (fire-and-forget via REST API)
-            ensureUserDocument(fbUser).catch(console.error);
+            // Ensure user document exists before reading it
+            await ensureUserDocument(fbUser);
 
             // Load user data via REST API (no SDK hang)
             const userData = await getUserData(fbUser.uid);
