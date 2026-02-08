@@ -59,8 +59,31 @@ function generateSearchKeywords(
   return Array.from(new Set(keywords)).filter(k => k.length > 2);
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function parseFirestoreDoc(doc: any) {
+  const fields = doc.fields || {};
+  const id = doc.name?.split("/").pop();
+
+  return {
+    id,
+    type: fields.type?.stringValue,
+    authorId: fields.authorId?.stringValue,
+    authorName: fields.authorName?.stringValue,
+    authorPhotoURL: fields.authorPhotoURL?.stringValue || null,
+    title: fields.title?.stringValue,
+    description: fields.description?.stringValue,
+    images: (fields.images?.arrayValue?.values || []).map((v: { stringValue: string }) => v.stringValue),
+    status: fields.status?.stringValue,
+    createdAt: fields.createdAt?.timestampValue || new Date().toISOString(),
+    updatedAt: fields.updatedAt?.timestampValue || new Date().toISOString(),
+    category: fields.category?.stringValue || null,
+    replyCount: fields.replyCount?.integerValue ? parseInt(fields.replyCount.integerValue, 10) : 0,
+    hasAvailability: fields.hasAvailability?.booleanValue || false,
+  };
+}
+
 // Use Firebase REST API directly instead of SDK
-export async function GET() {
+export async function GET(request: NextRequest) {
   const startTime = Date.now();
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
 
@@ -68,54 +91,75 @@ export async function GET() {
     return NextResponse.json({ error: "Project ID not configured", posts: [] }, { status: 500 });
   }
 
+  const { searchParams } = new URL(request.url);
+  const userId = searchParams.get("userId");
+
   try {
-    // Use Firestore REST API to query posts
-    const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/posts?pageSize=50`;
+    let documents: unknown[] = [];
 
-    const response = await fetch(url, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
+    if (userId) {
+      // Use :runQuery to filter by authorId
+      const runQueryUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents:runQuery`;
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      return NextResponse.json({
-        error: `Firestore API error: ${response.status}`,
-        details: errorText,
-        posts: [],
-      }, { status: response.status });
+      const response = await fetch(runQueryUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          structuredQuery: {
+            from: [{ collectionId: "posts" }],
+            where: {
+              fieldFilter: {
+                field: { fieldPath: "authorId" },
+                op: "EQUAL",
+                value: { stringValue: userId },
+              },
+            },
+            limit: 50,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        return NextResponse.json({
+          error: `Firestore API error: ${response.status}`,
+          details: errorText,
+          posts: [],
+        }, { status: response.status });
+      }
+
+      const results = await response.json();
+      // runQuery returns array of { document: {...} } objects
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      documents = results.filter((r: any) => r.document).map((r: any) => r.document);
+    } else {
+      // Fetch all posts
+      const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/posts?pageSize=50`;
+
+      const response = await fetch(url, {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        return NextResponse.json({
+          error: `Firestore API error: ${response.status}`,
+          details: errorText,
+          posts: [],
+        }, { status: response.status });
+      }
+
+      const data = await response.json();
+      documents = data.documents || [];
     }
 
-    const data = await response.json();
     const fetchTime = Date.now() - startTime;
 
     // Transform Firestore REST response to our post format
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const posts = (data.documents || [])
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .map((doc: any) => {
-        const fields = doc.fields || {};
-        const id = doc.name?.split("/").pop();
-
-        return {
-          id,
-          type: fields.type?.stringValue,
-          authorId: fields.authorId?.stringValue,
-          authorName: fields.authorName?.stringValue,
-          authorPhotoURL: fields.authorPhotoURL?.stringValue || null,
-          title: fields.title?.stringValue,
-          description: fields.description?.stringValue,
-          images: (fields.images?.arrayValue?.values || []).map((v: { stringValue: string }) => v.stringValue),
-          status: fields.status?.stringValue,
-          createdAt: fields.createdAt?.timestampValue || new Date().toISOString(),
-          updatedAt: fields.updatedAt?.timestampValue || new Date().toISOString(),
-          category: fields.category?.stringValue || null,
-          replyCount: fields.replyCount?.integerValue ? parseInt(fields.replyCount.integerValue, 10) : 0,
-          hasAvailability: fields.hasAvailability?.booleanValue || false,
-        };
-      })
+    const posts = (documents as any[])
+      .map(parseFirestoreDoc)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .filter((p: any) => p.status === "active");
 
@@ -129,7 +173,7 @@ export async function GET() {
       posts,
       count: posts.length,
       debug: {
-        totalDocs: data.documents?.length || 0,
+        totalDocs: documents.length,
         fetchTime: `${fetchTime}ms`,
         projectId,
       }

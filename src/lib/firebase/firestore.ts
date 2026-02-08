@@ -121,16 +121,13 @@ export async function getPosts(
 
 export async function getUserPosts(userId: string): Promise<Post[]> {
   try {
-    // Simple query - just filter by authorId, sort client-side
-    const q = query(
-      collection(db, "posts"),
-      where("authorId", "==", userId)
-    );
-
-    const snapshot = await getDocs(q);
-    const posts = snapshot.docs.map(docToPost).filter(p => p.status === "active");
-    posts.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-    return posts;
+    const res = await fetch(`/api/posts?userId=${encodeURIComponent(userId)}`);
+    const data = await res.json();
+    return (data.posts || []).map((p: Record<string, unknown>) => ({
+      ...p,
+      createdAt: new Date(p.createdAt as string),
+      updatedAt: new Date(p.updatedAt as string),
+    }));
   } catch (error) {
     console.error("getUserPosts error:", error);
     return [];
