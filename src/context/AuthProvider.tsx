@@ -8,30 +8,23 @@ import {
   ReactNode,
 } from "react";
 import { onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
-import { auth, db } from "@/lib/firebase/config";
+import { auth } from "@/lib/firebase/config";
 import { getUserData } from "@/lib/firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
 import { User } from "@/types";
 import { Spinner } from "@/components/ui/Spinner";
 
-// Ensure user document exists — uses setDoc with merge so it resolves
-// instantly from local cache. Does NOT include `role` to avoid overwriting
-// a previously selected role.
+// Ensure user document exists via REST API (merge behavior, won't overwrite role)
 async function ensureUserDocument(fbUser: FirebaseUser): Promise<void> {
-  const userRef = doc(db, "users", fbUser.uid);
-  await setDoc(userRef, {
-    email: fbUser.email,
-    displayName: fbUser.displayName || fbUser.email?.split("@")[0] || "User",
-    photoURL: fbUser.photoURL || null,
-  }, { merge: true });
-}
-
-// Wrap a promise with a timeout so it never hangs forever
-function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
-  ]);
+  await fetch("/api/user", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      uid: fbUser.uid,
+      email: fbUser.email,
+      displayName: fbUser.displayName || fbUser.email?.split("@")[0] || "User",
+      photoURL: fbUser.photoURL || null,
+    }),
+  });
 }
 
 interface AuthContextType {
@@ -51,7 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshUser = async () => {
     if (firebaseUser) {
-      const userData = await withTimeout(getUserData(firebaseUser.uid), 5000, null);
+      const userData = await getUserData(firebaseUser.uid);
       setUser(userData);
     }
   };
@@ -79,11 +72,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (fbUser) {
           try {
-            // Ensure user document exists (resolves fast via local cache)
+            // Ensure user document exists (fire-and-forget via REST API)
             ensureUserDocument(fbUser).catch(console.error);
 
-            // Load user data with a timeout to prevent hanging
-            const userData = await withTimeout(getUserData(fbUser.uid), 5000, null);
+            // Load user data via REST API (no SDK hang)
+            const userData = await getUserData(fbUser.uid);
             setUser(userData);
           } catch (error) {
             console.error("Error fetching user data:", error);
