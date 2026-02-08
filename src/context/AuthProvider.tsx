@@ -10,28 +10,28 @@ import {
 import { onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
 import { auth, db } from "@/lib/firebase/config";
 import { getUserData } from "@/lib/firebase/auth";
-import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc } from "firebase/firestore";
 import { User } from "@/types";
 import { Spinner } from "@/components/ui/Spinner";
 
-// Create user document only if it doesn't already exist
+// Ensure user document exists — uses setDoc with merge so it resolves
+// instantly from local cache. Does NOT include `role` to avoid overwriting
+// a previously selected role.
 async function ensureUserDocument(fbUser: FirebaseUser): Promise<void> {
   const userRef = doc(db, "users", fbUser.uid);
-  const userDoc = await getDoc(userRef);
+  await setDoc(userRef, {
+    email: fbUser.email,
+    displayName: fbUser.displayName || fbUser.email?.split("@")[0] || "User",
+    photoURL: fbUser.photoURL || null,
+  }, { merge: true });
+}
 
-  if (!userDoc.exists()) {
-    await setDoc(userRef, {
-      email: fbUser.email,
-      displayName: fbUser.displayName || fbUser.email?.split("@")[0] || "User",
-      photoURL: fbUser.photoURL || null,
-      role: null,
-      bio: "",
-      location: "",
-      createdAt: serverTimestamp(),
-      activePostCount: 0,
-      extraPostCredits: 0,
-    });
-  }
+// Wrap a promise with a timeout so it never hangs forever
+function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
+  ]);
 }
 
 interface AuthContextType {
@@ -51,7 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshUser = async () => {
     if (firebaseUser) {
-      const userData = await getUserData(firebaseUser.uid);
+      const userData = await withTimeout(getUserData(firebaseUser.uid), 5000, null);
       setUser(userData);
     }
   };
@@ -75,14 +75,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
-        clearTimeout(timeout);
         setFirebaseUser(fbUser);
 
         if (fbUser) {
           try {
-            // Ensure user document exists
-            await ensureUserDocument(fbUser);
-            const userData = await getUserData(fbUser.uid);
+            // Ensure user document exists (resolves fast via local cache)
+            ensureUserDocument(fbUser).catch(console.error);
+
+            // Load user data with a timeout to prevent hanging
+            const userData = await withTimeout(getUserData(fbUser.uid), 5000, null);
             setUser(userData);
           } catch (error) {
             console.error("Error fetching user data:", error);
@@ -92,6 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(null);
         }
 
+        clearTimeout(timeout);
         setLoading(false);
       }, (error) => {
         console.error("Auth state change error:", error);
