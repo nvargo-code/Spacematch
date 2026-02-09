@@ -23,7 +23,9 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { TagGroup } from "@/components/ui/TagGroup";
 import { ImageUploader } from "./ImageUploader";
 import { LocationPicker } from "./LocationPicker";
+import { MatchCelebration } from "@/components/ui/MatchCelebration";
 import { cn } from "@/lib/utils";
+import { MatchResult } from "@/types";
 import { Search, Building2, ChevronLeft, ChevronRight } from "lucide-react";
 
 const STEPS = [
@@ -39,6 +41,9 @@ export function PostForm() {
   const { success, error: showError } = useToast();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [matchResults, setMatchResults] = useState<MatchResult[]>([]);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [pendingPostId, setPendingPostId] = useState<string | null>(null);
 
   const {
     register,
@@ -92,6 +97,29 @@ export function PostForm() {
         data
       );
       success("Post created successfully!");
+
+      // Trigger matching for need/space posts
+      if (data.type === "need" || data.type === "space") {
+        try {
+          const matchRes = await fetch("/api/match", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ postId, userId: firebaseUser.uid }),
+          });
+          if (matchRes.ok) {
+            const matchData = await matchRes.json();
+            if (matchData.matches && matchData.matches.length > 0) {
+              setMatchResults(matchData.matches);
+              setPendingPostId(postId);
+              setShowCelebration(true);
+              return; // Don't navigate yet — celebration will handle it
+            }
+          }
+        } catch {
+          // Matching failure is non-fatal
+        }
+      }
+
       router.push(`/post/${postId}`);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to create post";
@@ -394,8 +422,21 @@ export function PostForm() {
     }
   };
 
+  const handleCelebrationDismiss = () => {
+    setShowCelebration(false);
+    if (pendingPostId) {
+      router.push(`/post/${pendingPostId}`);
+    }
+  };
+
   return (
     <div className="max-w-2xl mx-auto">
+      {showCelebration && matchResults.length > 0 && (
+        <MatchCelebration
+          matches={matchResults}
+          onDismiss={handleCelebrationDismiss}
+        />
+      )}
       {/* Progress bar */}
       <div className="mb-8">
         <div className="flex justify-between mb-2">

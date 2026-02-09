@@ -4,13 +4,15 @@ import Link from "next/link";
 import { useAuth } from "@/context/AuthProvider";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
-import { Search, Plus, MessageSquare, Menu, Users } from "lucide-react";
+import { Search, Plus, MessageSquare, Menu, Users, Bell } from "lucide-react";
 import { useState } from "react";
+import { useMatchCount } from "@/hooks/useMatches";
 import { MobileMenu } from "./MobileMenu";
 
 export function Header() {
   const { user, firebaseUser } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
+  const { newCount } = useMatchCount();
 
   return (
     <>
@@ -57,6 +59,18 @@ export function Header() {
                 >
                   <MessageSquare size={18} />
                   Messages
+                </Link>
+                <Link
+                  href="/matches"
+                  className="relative text-muted hover:text-foreground transition-colors flex items-center gap-2"
+                >
+                  <Bell size={18} />
+                  Matches
+                  {newCount > 0 && (
+                    <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold px-1">
+                      {newCount > 9 ? "9+" : newCount}
+                    </span>
+                  )}
                 </Link>
               </>
             )}

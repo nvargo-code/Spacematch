@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthProvider";
-import { Home, Search, Plus, MessageSquare, User } from "lucide-react";
+import { Home, Search, Plus, Bell, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function MobileNav() {
@@ -16,7 +16,7 @@ export function MobileNav() {
     ...(firebaseUser
       ? [
           { href: "/post/new", icon: Plus, label: "Post" },
-          { href: "/messages", icon: MessageSquare, label: "Chat" },
+          { href: "/matches", icon: Bell, label: "Matches" },
           { href: "/profile", icon: User, label: "Profile" },
         ]
       : [
