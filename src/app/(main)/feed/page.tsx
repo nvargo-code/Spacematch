@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { usePosts } from "@/hooks/usePosts";
 import { useMatches } from "@/hooks/useMatches";
 import { AuthGuard } from "@/components/auth/AuthGuard";
@@ -15,7 +15,6 @@ import { Plus } from "lucide-react";
 
 export default function FeedPage() {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const typeParam = searchParams.get("type") as PostType | null;
 
   const [filters, setFilters] = useState<PostFilter>(() => {
@@ -25,7 +24,7 @@ export default function FeedPage() {
     return {};
   });
 
-  // Keep filters in sync when URL type param changes (e.g. tab click, navigation)
+  // Keep filters in sync when URL type param changes (e.g. header link navigation)
   useEffect(() => {
     const validTypes = ["need", "space", "community"];
     if (typeParam && validTypes.includes(typeParam)) {
@@ -37,19 +36,20 @@ export default function FeedPage() {
 
   const isCommunity = filters.type === "community";
 
-  // Sync URL when type filter changes
+  // Update filters and sync URL without triggering Next.js navigation
   const handleFiltersChange = useCallback(
     (newFilters: PostFilter) => {
       setFilters(newFilters);
-      const params = new URLSearchParams(searchParams.toString());
+      const params = new URLSearchParams(window.location.search);
       if (newFilters.type) {
         params.set("type", newFilters.type);
       } else {
         params.delete("type");
       }
-      router.replace(`/feed?${params.toString()}`, { scroll: false });
+      const qs = params.toString();
+      window.history.replaceState(null, "", qs ? `/feed?${qs}` : "/feed");
     },
-    [searchParams, router]
+    []
   );
   const { posts, loading, hasMore, loadMore } = usePosts(filters);
   const { newMatches, markMatchesSeen } = useMatches();
