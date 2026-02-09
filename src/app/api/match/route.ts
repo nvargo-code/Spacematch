@@ -129,6 +129,25 @@ export async function POST(request: NextRequest) {
 
     const matches = await findMatches(post);
 
+    // Persist match records to Firestore so they appear on /matches
+    for (const match of matches) {
+      const isSeeker = post.type === "need";
+      const otherPost = await getPostViaREST(match.post.id);
+      if (!otherPost) continue;
+
+      try {
+        await createMatch(
+          isSeeker ? postId : match.post.id,
+          isSeeker ? match.post.id : postId,
+          isSeeker ? userId : otherPost.authorId,
+          isSeeker ? otherPost.authorId : userId,
+          match.score
+        );
+      } catch (err) {
+        console.error("Failed to persist match record:", err);
+      }
+    }
+
     return NextResponse.json({ matches });
   } catch (error) {
     console.error("Error finding matches:", error);
