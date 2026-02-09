@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import Link from "next/link";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { usePosts } from "@/hooks/usePosts";
 import { useMatches } from "@/hooks/useMatches";
 import { AuthGuard } from "@/components/auth/AuthGuard";
@@ -15,7 +15,6 @@ import { Plus } from "lucide-react";
 
 export default function FeedPage() {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const typeParam = searchParams.get("type") as PostType | null;
 
   const [filters, setFilters] = useState<PostFilter>(() => {
@@ -24,21 +23,6 @@ export default function FeedPage() {
     }
     return {};
   });
-
-  const isCommunity = filters.type === "community";
-
-  // Update filters and sync URL for bookmarkability and Header awareness
-  const handleFiltersChange = (newFilters: PostFilter) => {
-    setFilters(newFilters);
-    const params = new URLSearchParams(searchParams.toString());
-    if (newFilters.type) {
-      params.set("type", newFilters.type);
-    } else {
-      params.delete("type");
-    }
-    const qs = params.toString();
-    router.replace(qs ? `/feed?${qs}` : "/feed", { scroll: false });
-  };
 
   const { posts, loading, hasMore, loadMore } = usePosts(filters);
   const { newMatches, markMatchesSeen } = useMatches();
@@ -79,11 +63,11 @@ export default function FeedPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            <PostFilters filters={filters} onChange={handleFiltersChange} />
-            <Link href={isCommunity ? "/community/new" : "/post/new"}>
+            <PostFilters filters={filters} onChange={setFilters} />
+            <Link href="/post/new">
               <Button size="sm">
                 <Plus size={16} className="mr-1" />
-                {isCommunity ? "New Community Post" : "New Post"}
+                New Post
               </Button>
             </Link>
           </div>

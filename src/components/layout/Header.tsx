@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthProvider";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
@@ -14,11 +13,6 @@ export function Header() {
   const { user, firebaseUser } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const { newCount } = useMatchCount();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const isCommunityFeed = pathname === "/feed" && searchParams.get("type") === "community";
-  const postHref = isCommunityFeed ? "/community/new" : "/post/new";
-  const postLabel = isCommunityFeed ? "Community Post" : "Post";
 
   return (
     <>
@@ -53,11 +47,11 @@ export function Header() {
             {firebaseUser && (
               <>
                 <Link
-                  href={postHref}
+                  href="/post/new"
                   className="text-muted hover:text-foreground transition-colors flex items-center gap-2"
                 >
                   <Plus size={18} />
-                  {postLabel}
+                  Post
                 </Link>
                 <Link
                   href="/messages"

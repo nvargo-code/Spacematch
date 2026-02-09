@@ -26,7 +26,7 @@ import { LocationPicker } from "./LocationPicker";
 import { MatchCelebration } from "@/components/ui/MatchCelebration";
 import { cn } from "@/lib/utils";
 import { MatchResult } from "@/types";
-import { Search, Building2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Building2, Users, ChevronLeft, ChevronRight } from "lucide-react";
 
 const STEPS = [
   { id: 1, title: "Basics", description: "What are you looking for?" },
@@ -141,18 +141,25 @@ export function PostForm() {
               <label className="block text-sm font-medium text-foreground mb-3">
                 I want to...
               </label>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 {[
                   { value: "need", icon: Search, label: "Find a Space", desc: "I'm looking for a creative space" },
                   { value: "space", icon: Building2, label: "List a Space", desc: "I have a space to offer" },
+                  { value: "community", icon: Users, label: "Community Post", desc: "Share with the community" },
                 ].map((option) => {
                   const Icon = option.icon;
-                  const isSelected = postType === option.value;
+                  const isSelected = option.value !== "community" && postType === option.value;
                   return (
                     <button
                       key={option.value}
                       type="button"
-                      onClick={() => setValue("type", option.value as "need" | "space")}
+                      onClick={() => {
+                        if (option.value === "community") {
+                          router.push("/community/new");
+                        } else {
+                          setValue("type", option.value as "need" | "space");
+                        }
+                      }}
                       className={cn(
                         "p-4 rounded-xl border-2 text-left transition-all",
                         isSelected

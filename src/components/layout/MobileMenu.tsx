@@ -40,7 +40,6 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
     ...(firebaseUser
       ? [
           { href: "/post/new", icon: Plus, label: "Create Post" },
-          { href: "/community/new", icon: Users, label: "Community Post" },
           { href: "/messages", icon: MessageSquare, label: "Messages" },
           { href: "/profile", icon: User, label: "Profile" },
         ]
