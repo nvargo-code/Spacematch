@@ -58,7 +58,7 @@ export const postSchema = z.object({
     petsAllowed: z.boolean().optional(),
     climateControlled: z.boolean().optional(),
     noiseLevel: z.enum(["quiet", "moderate", "loud"]).optional(),
-    userTypes: z.array(z.enum(["artist", "musician", "maker", "photographer", "craftsperson", "educator", "entrepreneur", "other"])).optional(),
+    userTypes: z.array(z.string().max(50)).optional(),
     customTags: z.array(z.string().max(30)).optional(),
   }),
 });

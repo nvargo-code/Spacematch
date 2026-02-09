@@ -61,7 +61,7 @@ export interface PostAttributes {
   petsAllowed?: boolean;
   climateControlled?: boolean;
   noiseLevel?: NoiseLevel;
-  userTypes?: UserType[];
+  userTypes?: string[];
   customTags?: string[];
 }
 

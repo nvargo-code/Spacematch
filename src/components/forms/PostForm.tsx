@@ -447,7 +447,16 @@ export function PostForm() {
               ) : (
                 <Button
                   type="button"
-                  onClick={handleSubmit(onSubmit)}
+                  onClick={handleSubmit(onSubmit, (validationErrors) => {
+                    // Navigate to the step with the first error
+                    if (validationErrors.title || validationErrors.type) {
+                      setStep(1);
+                    } else if (validationErrors.description) {
+                      setStep(2);
+                    } else if (validationErrors.attributes) {
+                      setStep(3);
+                    }
+                  })}
                   loading={loading}
                   disabled={!canPost}
                 >
