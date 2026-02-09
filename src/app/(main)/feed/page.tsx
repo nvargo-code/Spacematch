@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { usePosts } from "@/hooks/usePosts";
@@ -24,6 +24,16 @@ export default function FeedPage() {
     }
     return {};
   });
+
+  // Keep filters in sync when URL type param changes (e.g. tab click, navigation)
+  useEffect(() => {
+    const validTypes = ["need", "space", "community"];
+    if (typeParam && validTypes.includes(typeParam)) {
+      setFilters((prev) => (prev.type === typeParam ? prev : { ...prev, type: typeParam }));
+    } else if (!typeParam) {
+      setFilters((prev) => (prev.type === undefined ? prev : { ...prev, type: undefined }));
+    }
+  }, [typeParam]);
 
   const isCommunity = filters.type === "community";
 
