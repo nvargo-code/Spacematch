@@ -141,7 +141,7 @@ export function PostForm() {
               <label className="block text-sm font-medium text-foreground mb-3">
                 I want to...
               </label>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {[
                   { value: "need", icon: Search, label: "Find a Space", desc: "I'm looking for a creative space" },
                   { value: "space", icon: Building2, label: "List a Space", desc: "I have a space to offer" },
@@ -161,7 +161,7 @@ export function PostForm() {
                         }
                       }}
                       className={cn(
-                        "p-4 rounded-xl border-2 text-left transition-all",
+                        "p-4 rounded-xl border-2 text-left transition-all flex sm:block items-center gap-3",
                         isSelected
                           ? "border-accent bg-accent/10"
                           : "border-border bg-card hover:border-accent/50"
@@ -169,10 +169,12 @@ export function PostForm() {
                     >
                       <Icon
                         size={24}
-                        className={isSelected ? "text-accent" : "text-muted"}
+                        className={cn("flex-shrink-0", isSelected ? "text-accent" : "text-muted")}
                       />
-                      <h3 className="font-semibold text-foreground mt-2">{option.label}</h3>
-                      <p className="text-xs text-muted mt-1">{option.desc}</p>
+                      <div>
+                        <h3 className="font-semibold text-foreground sm:mt-2">{option.label}</h3>
+                        <p className="text-xs text-muted mt-1">{option.desc}</p>
+                      </div>
                     </button>
                   );
                 })}

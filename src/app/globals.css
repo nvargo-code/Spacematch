@@ -71,6 +71,15 @@ body {
     text-wrap: balance;
   }
 
+  /* Hide scrollbar while allowing scroll */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
   /* Safe area for notched devices */
   .safe-area-bottom {
     padding-bottom: env(safe-area-inset-bottom, 0px);

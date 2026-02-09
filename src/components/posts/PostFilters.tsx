@@ -51,9 +51,9 @@ export function PostFilters({ filters, onChange, className }: PostFiltersProps) 
   return (
     <>
       {/* Filter bar */}
-      <div className={cn("flex items-center gap-3", className)}>
+      <div className={cn("flex items-center gap-3 overflow-x-auto scrollbar-hide", className)}>
         {/* Type toggle */}
-        <div className="flex rounded-lg bg-card border border-border overflow-hidden">
+        <div className="flex rounded-lg bg-card border border-border overflow-hidden flex-shrink-0">
           {[
             { value: undefined, label: "All" },
             { value: "need" as PostType, label: "Seeking" },
@@ -64,7 +64,7 @@ export function PostFilters({ filters, onChange, className }: PostFiltersProps) 
               key={option.label}
               onClick={() => handleTypeChange(option.value)}
               className={cn(
-                "px-4 py-2 text-sm font-medium transition-colors",
+                "px-4 py-2 text-sm font-medium transition-colors flex-shrink-0 whitespace-nowrap",
                 filters.type === option.value
                   ? "bg-accent text-background"
                   : "text-muted hover:text-foreground"
@@ -80,7 +80,7 @@ export function PostFilters({ filters, onChange, className }: PostFiltersProps) 
           variant="secondary"
           size="sm"
           onClick={() => setIsOpen(true)}
-          className="relative"
+          className="relative flex-shrink-0"
         >
           <Filter size={16} className="mr-2" />
           Filters
