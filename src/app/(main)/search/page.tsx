@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSearchPosts } from "@/hooks/usePosts";
 import { PostGrid } from "@/components/posts/PostGrid";
+import { ConfettiOverlay } from "@/components/ui/ConfettiOverlay";
 import { PostType } from "@/types";
 import { cn } from "@/lib/utils";
 import { Search as SearchIcon } from "lucide-react";
@@ -11,9 +12,19 @@ export default function SearchPage() {
   const [query, setQuery] = useState("");
   const [type, setType] = useState<PostType | undefined>(undefined);
   const { posts, loading } = useSearchPosts(query, type);
+  const [showConfetti, setShowConfetti] = useState(false);
+
+  useEffect(() => {
+    if (loading) {
+      setShowConfetti(false);
+    } else if (posts.length > 0 && query.trim()) {
+      setShowConfetti(true);
+    }
+  }, [posts, loading, query]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
+      <ConfettiOverlay trigger={showConfetti} onComplete={() => setShowConfetti(false)} />
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-foreground mb-6">Search Spaces</h1>
 
