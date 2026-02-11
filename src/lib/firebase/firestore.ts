@@ -6,12 +6,10 @@ import {
   updateDoc,
   query,
   where,
-  orderBy,
   limit,
   serverTimestamp,
   increment,
   DocumentSnapshot,
-  QueryConstraint,
 } from "firebase/firestore";
 import { db } from "./config";
 import { Post, CreatePostData, PostFilter, PostStatus } from "@/types";
@@ -138,23 +136,22 @@ export async function searchPosts(
   keyword: string,
   type?: Post["type"]
 ): Promise<Post[]> {
-  const searchTerm = keyword.toLowerCase();
-
-  const constraints: QueryConstraint[] = [
-    where("status", "==", "active"),
-    where("searchKeywords", "array-contains", searchTerm),
-    orderBy("createdAt", "desc"),
-    limit(50),
-  ];
-
-  if (type) {
-    constraints.unshift(where("type", "==", type));
+  try {
+    let url = `/api/posts?keyword=${encodeURIComponent(keyword)}`;
+    if (type) {
+      url += `&type=${encodeURIComponent(type)}`;
+    }
+    const res = await fetch(url);
+    const data = await res.json();
+    return (data.posts || []).map((p: Record<string, unknown>) => ({
+      ...p,
+      createdAt: new Date(p.createdAt as string),
+      updatedAt: new Date(p.updatedAt as string),
+    }));
+  } catch (error) {
+    console.error("searchPosts error:", error);
+    return [];
   }
-
-  const q = query(collection(db, "posts"), ...constraints);
-  const snapshot = await getDocs(q);
-
-  return snapshot.docs.map(docToPost);
 }
 
 export async function updatePostStatus(

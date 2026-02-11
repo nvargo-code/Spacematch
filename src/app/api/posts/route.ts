@@ -115,11 +115,65 @@ export async function GET(request: NextRequest) {
 
   const { searchParams } = new URL(request.url);
   const userId = searchParams.get("userId");
+  const keyword = searchParams.get("keyword");
+  const typeFilter = searchParams.get("type");
 
   try {
     let documents: unknown[] = [];
 
-    if (userId) {
+    if (keyword) {
+      // Search by keyword using array-contains on searchKeywords
+      const searchTerm = keyword.toLowerCase().trim();
+      const words = searchTerm.split(/\s+/).filter(w => w.length > 2);
+      const primaryKeyword = words[0] || searchTerm;
+
+      const runQueryUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents:runQuery`;
+
+      // Use a single array-contains filter (no composite index needed).
+      // Status and type filtering + sorting are handled in post-processing below.
+      const response = await fetch(runQueryUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          structuredQuery: {
+            from: [{ collectionId: "posts" }],
+            where: {
+              fieldFilter: {
+                field: { fieldPath: "searchKeywords" },
+                op: "ARRAY_CONTAINS",
+                value: { stringValue: primaryKeyword },
+              },
+            },
+            limit: 100,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        return NextResponse.json({
+          error: `Firestore API error: ${response.status}`,
+          details: errorText,
+          posts: [],
+        }, { status: response.status });
+      }
+
+      const results = await response.json();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      documents = results.filter((r: any) => r.document).map((r: any) => r.document);
+
+      // Multi-word filtering: check remaining keywords against searchKeywords
+      if (words.length > 1) {
+        const additionalWords = words.slice(1);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        documents = (documents as any[]).filter((doc: any) => {
+          const docKeywords: string[] = (doc.fields?.searchKeywords?.arrayValue?.values || [])
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            .map((v: any) => v.stringValue);
+          return additionalWords.every(w => docKeywords.includes(w));
+        });
+      }
+    } else if (userId) {
       // Use :runQuery to filter by authorId
       const runQueryUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents:runQuery`;
 
@@ -180,10 +234,16 @@ export async function GET(request: NextRequest) {
 
     // Transform Firestore REST response to our post format
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const posts = (documents as any[])
+    let posts = (documents as any[])
       .map(parseFirestoreDoc)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .filter((p: any) => p.status === "active");
+
+    // Apply type filter (used by keyword search)
+    if (typeFilter) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      posts = posts.filter((p: any) => p.type === typeFilter);
+    }
 
     // Sort by createdAt descending
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
