@@ -19,7 +19,7 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "SpaceMatch - Find Your Perfect Creative Space",
+  title: "SpaceMatch - Where the Right Space Finds You",
   description:
     "Connect with landlords offering niche spaces for artists, musicians, makers, and creators.",
   keywords: ["creative space", "art studio", "maker space", "band practice", "rental"],

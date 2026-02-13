@@ -21,7 +21,7 @@ export default function HomePage() {
       {!firebaseUser && (
         <div className="text-center py-12 mb-8 bg-gradient-to-b from-card to-background rounded-xl">
           <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-            Find Your Perfect Creative Space
+            Where the Right Space Finds You
           </h1>
           <p className="text-lg text-muted mb-8 max-w-2xl mx-auto">
             Connect with landlords offering unique spaces for artists, musicians,
