@@ -24,8 +24,8 @@ export default function HomePage() {
             Where the Right Space Finds You
           </h1>
           <p className="text-lg text-muted mb-8 max-w-2xl mx-auto">
-            Connect with landlords offering unique spaces for artists, musicians,
-            makers, and creators of all kinds.
+            Post a listing about the Space you need, or the Space you have,
+            and we&apos;ll find you the perfect match.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/signup">
