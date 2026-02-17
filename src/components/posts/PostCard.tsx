@@ -9,7 +9,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Tag } from "@/components/ui/Tag";
 import { formatDate, truncateText } from "@/lib/utils/formatters";
 import { cn } from "@/lib/utils";
-import { MapPin, Clock, Search, Building2, Users, MessageSquare, Calendar } from "lucide-react";
+import { MapPin, Clock, Search, Building2, Users, MessageSquare, Calendar, ExternalLink } from "lucide-react";
 
 interface PostCardProps {
   post: Post;
@@ -70,6 +70,12 @@ export function PostCard({ post, className }: PostCardProps) {
                 <TypeIcon size={12} />
                 {badgeLabel}
               </span>
+              {post.isImported && (
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-indigo-500 text-white">
+                  <ExternalLink size={12} />
+                  Imported
+                </span>
+              )}
               {post.hasAvailability && post.type === "space" && (
                 <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-blue-500 text-white">
                   <Calendar size={12} />

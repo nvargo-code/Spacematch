@@ -19,7 +19,7 @@ export default function HomePage() {
     <div className="max-w-7xl mx-auto px-4 py-6">
       {/* Hero section for non-logged in users */}
       {!firebaseUser && (
-        <div className="text-center py-12 mb-8 bg-gradient-to-b from-card to-background rounded-xl">
+        <div className="text-center py-12 px-6 mb-8 bg-gradient-to-b from-card to-background rounded-xl">
           <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
             Where the Right Space Finds You
           </h1>

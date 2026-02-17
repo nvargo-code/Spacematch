@@ -101,6 +101,10 @@ function parseFirestoreDoc(doc: any) {
     category: fields.category?.stringValue || null,
     replyCount: fields.replyCount?.integerValue ? parseInt(fields.replyCount.integerValue, 10) : 0,
     hasAvailability: fields.hasAvailability?.booleanValue || false,
+    source: fields.source?.stringValue || null,
+    externalId: fields.externalId?.stringValue || null,
+    externalUrl: fields.externalUrl?.stringValue || null,
+    isImported: fields.isImported?.booleanValue || false,
   };
 }
 

@@ -25,6 +25,11 @@ export interface Post {
   hasAvailability?: boolean;
   availabilityStart?: Date;
   availabilityEnd?: Date;
+  // Import fields
+  source?: "manual" | "csv-import" | "rapidapi" | string;
+  externalId?: string;
+  externalUrl?: string;
+  isImported?: boolean;
 }
 
 export interface CreatePostData {

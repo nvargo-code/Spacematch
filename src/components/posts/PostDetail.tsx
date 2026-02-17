@@ -37,6 +37,7 @@ import {
   Thermometer,
   Volume2,
   DoorOpen,
+  ExternalLink,
 } from "lucide-react";
 
 interface PostDetailProps {
@@ -357,43 +358,87 @@ export function PostDetail({ post }: PostDetailProps) {
           <div className="space-y-6">
             {/* Author card */}
             <Card padding="lg">
-              <Link
-                href={isOwner ? "/profile" : `#`}
-                className="flex items-center gap-3 mb-4"
-              >
-                <Avatar src={post.authorPhotoURL} alt={post.authorName} size="lg" />
-                <div>
-                  <p className="font-semibold text-foreground">{post.authorName}</p>
-                  <p className="text-sm text-muted">
-                    {post.type === "need" ? "Space Seeker" : "Space Provider"}
+              {post.isImported ? (
+                <>
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-12 h-12 rounded-full bg-indigo-500/20 flex items-center justify-center">
+                      <ExternalLink size={20} className="text-indigo-400" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-foreground">{post.authorName}</p>
+                      <p className="text-sm text-muted">External Listing</p>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted mb-4">
+                    This listing is from an external source. Click below to view the original listing and contact the provider.
                   </p>
-                </div>
-              </Link>
+                  {post.externalUrl && (
+                    <Button
+                      fullWidth
+                      onClick={() => {
+                        // Log interest
+                        if (firebaseUser) {
+                          fetch("/api/interests", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                              userId: firebaseUser.uid,
+                              userName: firebaseUser.displayName || "",
+                              postId: post.id,
+                              postTitle: post.title,
+                              externalUrl: post.externalUrl,
+                            }),
+                          }).catch(() => {});
+                        }
+                        window.open(post.externalUrl, "_blank", "noopener,noreferrer");
+                      }}
+                    >
+                      <ExternalLink size={18} className="mr-2" />
+                      View Listing
+                    </Button>
+                  )}
+                </>
+              ) : (
+                <>
+                  <Link
+                    href={isOwner ? "/profile" : `#`}
+                    className="flex items-center gap-3 mb-4"
+                  >
+                    <Avatar src={post.authorPhotoURL} alt={post.authorName} size="lg" />
+                    <div>
+                      <p className="font-semibold text-foreground">{post.authorName}</p>
+                      <p className="text-sm text-muted">
+                        {post.type === "need" ? "Space Seeker" : "Space Provider"}
+                      </p>
+                    </div>
+                  </Link>
 
-              {firebaseUser && !isOwner && (
-                <Link href={`/messages?new=${post.authorId}&postId=${post.id}`}>
-                  <Button fullWidth>
-                    <MessageSquare size={18} className="mr-2" />
-                    Message
-                  </Button>
-                </Link>
-              )}
+                  {firebaseUser && !isOwner && (
+                    <Link href={`/messages?new=${post.authorId}&postId=${post.id}`}>
+                      <Button fullWidth>
+                        <MessageSquare size={18} className="mr-2" />
+                        Message
+                      </Button>
+                    </Link>
+                  )}
 
-              {!firebaseUser && (
-                <Link href="/login">
-                  <Button fullWidth>Log in to message</Button>
-                </Link>
-              )}
+                  {!firebaseUser && (
+                    <Link href="/login">
+                      <Button fullWidth>Log in to message</Button>
+                    </Link>
+                  )}
 
-              {isOwner && (
-                <Button
-                  variant="danger"
-                  fullWidth
-                  onClick={() => setShowDeleteModal(true)}
-                >
-                  <Trash2 size={18} className="mr-2" />
-                  Delete Post
-                </Button>
+                  {isOwner && (
+                    <Button
+                      variant="danger"
+                      fullWidth
+                      onClick={() => setShowDeleteModal(true)}
+                    >
+                      <Trash2 size={18} className="mr-2" />
+                      Delete Post
+                    </Button>
+                  )}
+                </>
               )}
             </Card>
           </div>
