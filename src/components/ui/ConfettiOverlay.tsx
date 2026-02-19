@@ -38,7 +38,6 @@ export function ConfettiOverlay({ trigger, onComplete }: ConfettiOverlayProps) {
           y: Math.random() - 0.2,
         },
         colors,
-        disableForReducedMotion: true,
       });
       confetti({
         particleCount,
@@ -49,7 +48,6 @@ export function ConfettiOverlay({ trigger, onComplete }: ConfettiOverlayProps) {
           y: Math.random() - 0.2,
         },
         colors,
-        disableForReducedMotion: true,
       });
     }, 250);
 
